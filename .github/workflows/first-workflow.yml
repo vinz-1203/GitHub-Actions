@@ -1,13 +1,22 @@
 name: First workflow
 
-on: [push]
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+# This permission block is CRITICAL so the runner can post PR comments
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest] # Using Ubuntu for the PR commenter step
         python-version: ["3.10", "3.11"]
 
     steps:
@@ -25,6 +34,33 @@ jobs:
           pip install pytest
 
       - name: Run tests
+        id: run_tests
         env:
           PYTHONPATH: src
         run: pytest src/addition.py
+
+      # 🟢 This posts a comment ONLY if all previous steps succeeded
+      - name: Comment PR Success
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **Pytest Successful!** All tests passed smoothly on Python ${{ matrix.python-version }}.'
+            })
+
+      # 🔴 This posts a comment ONLY if the test step failed
+      - name: Comment PR Failure
+        if: failure() && steps.run_tests.outcome == 'failure' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Pytest Failed!** Please check the GitHub Actions logs to fix the broken tests on Python ${{ matrix.python-version }}.'
+            })
