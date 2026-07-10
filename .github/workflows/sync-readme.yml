@@ -1,0 +1,39 @@
+name: Sync README Checklist with Issues
+
+on:
+  issues:
+    types: [closed, reopened]
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Grants the bot permission to edit and commit to your README file
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Handle Closed Issue
+        if: github.event.action == 'closed'
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          # 1. Check the box [ ] -> [x]
+          # 2. Add strikethrough to the text if it contains the issue id comment
+          sed -i -E "s/- \[[ bB]?\] (.*)<!-- id: #${ISSUE_NUM} -->/- [x] ~~\1~~ <!-- id: #${ISSUE_NUM} -->/" README.md
+
+      - name: Handle Reopened Issue
+        if: github.event.action == 'reopened'
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          # 1. Uncheck the box [x] -> [ ]
+          # 2. Remove the strikethrough if the issue is opened back up
+          sed -i -E "s/- \[[xX]\] ~~(.*)~~ <!-- id: #${ISSUE_NUM} -->/- [ ] \1 <!-- id: #${ISSUE_NUM} -->/" README.md
+
+      - name: Commit and Push README Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: auto-sync task status for Issue #${{ github.event.issue.number }}" || echo "No changes to commit"
+          git push
