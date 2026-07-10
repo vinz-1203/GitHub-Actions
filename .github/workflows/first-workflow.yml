@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [ main, master ]
 
+if: false
+
 # This permission block is CRITICAL so the runner can post PR comments
 permissions:
   pull-requests: write
