@@ -6,3 +6,5 @@ Below is the live tracking list of our project issues. These checkboxes and stri
 - [x] ~~Configure Kubernetes deployment manifests ~~ <!-- id: #3 --> 
 - [ ] Set up Prometheus monitoring alerts <!-- id: #4 -->  
 <!-- INSERT_NEW_TASKS_HERE -->
+
+- [ ] https://github.com/vinz-1203/GitHub-Actions/issues/2
