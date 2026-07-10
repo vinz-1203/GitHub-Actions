@@ -17,15 +17,26 @@ jobs:
       # --- TRIGGER 1: IF AN ISSUE IS NEWLY CREATED ---
       - name: Handle Newly Opened Issue
         if: github.event.action == 'opened'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUM="${{ github.event.issue.number }}"
           ISSUE_TITLE="${{ github.event.issue.title }}"
+          REPO="${{ github.repository }}"
           
-          # Create the fresh markdown line formatting
-          NEW_LINE="- [ ] ${ISSUE_TITLE} <!-- id: #${ISSUE_NUM} -->"
+          # Fetch issue details using GitHub CLI to see if it has a parent issue
+          PARENT_DATA=$(gh api repos/$REPO/issues/$ISSUE_NUM --jq '.sub_issues_summary // empty')
           
-          # Find the marker and insert the new task line right above it
+          # Check if a parent exists. If yes, add a tab indentation (\t) for a sub-issue look
+          if [ -n "$PARENT_DATA" ]; then
+            NEW_LINE="  - [ ] Sub-Task: ${ISSUE_TITLE} <!-- id: #${ISSUE_NUM} -->"
+          else
+            NEW_LINE="- [ ] ${ISSUE_TITLE} <!-- id: #${ISSUE_NUM} -->"
+          fi
+          
+          # Insert the line right above our target tracking comment
           sed -i "s|<!-- INSERT_NEW_TASKS_HERE -->|${NEW_LINE}\n<!-- INSERT_NEW_TASKS_HERE -->|g" README.md
+
 
       # --- TRIGGER 2: IF AN ISSUE IS CLOSED ---
       - name: Handle Closed Issue
